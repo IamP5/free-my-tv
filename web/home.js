@@ -342,6 +342,8 @@
     list = $('tiles').children;
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.SHELF && st.shelf === i);
     revealShelf();
+    setClass(body, 'on-shelf', st.zone === Z.SHELF && shelf.length > 0);
+    labelShelf();
     list = document.querySelectorAll('#drawer .key');
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.DRAWER && st.drawer === i);
     list = document.querySelectorAll('#apps .cell');
@@ -356,6 +358,7 @@
     focusRows($('keypick'), st.key, st.zone === Z.KEY);
     setClass(body, 'drawer-open', st.zone === Z.DRAWER);
     followSoon();
+    heroSoon();
   }
 
   function focusRows(sheet, index, on) {
@@ -424,49 +427,78 @@
     var holder = $('cards');
     setClass(body, 'no-picks', !list.length);
     setClass(body, 'no-key', !Data.hasKey());   // as on Android: no title or tabs that could never show anything
+    setClass(body, 'hero', list.length > 0);
     if (!Data.hasKey() && st.zone === Z.TOP && st.top < 3) st.top = 3;
     var same = list.length === cards.length;
-    for (var i = 0; same && i < list.length; i++) same = list[i].id === cards[i].id && list[i].backdrop === cards[i].backdrop && list[i].meta === cards[i].meta;
+    for (var i = 0; same && i < list.length; i++) same = list[i].id === cards[i].id && list[i].poster === cards[i].poster && list[i].backdrop === cards[i].backdrop && list[i].meta === cards[i].meta;
     if (same && holder.children.length === list.length) return;
     cards = list;
     holder.innerHTML = '';
     for (var c = 0; c < list.length; c++) {
       var p = list[c], card = el('div', 'card', holder);
-      var img = el('div', 'img', card);
-      // Narrow: the poster (the backdrop cropped without one); the wide card fades its backdrop in over it, loaded then.
-      var poster = el('div', 'layer', img);
-      poster.style.backgroundImage = 'url(' + (p.poster ? Data.image(p.poster, 'w342') : Data.image(p.backdrop, 'w780')) + ')';
-      el('div', 'layer back', img);
-      el('div', 'name', card, p.title);
-      if (p.meta) el('div', 'meta', card, p.meta);
+      card.style.left = (CARD_LEFT + c * CARD_STEP) + 'px';
+      // The poster, or the backdrop cropped without one.
+      el('div', 'layer', el('div', 'img', card)).style.backgroundImage = 'url(' + (p.poster ? Data.image(p.poster, 'w342') : Data.image(p.backdrop, 'w780')) + ')';
       hover(card, Z.CARDS, c);
     }
     st.card = Math.min(st.card, Math.max(0, list.length - 1));
     if (!list.length && st.zone === Z.CARDS) st.zone = Z.SHELF;
+    checkNight();
     backdrop(list.length ? Data.image(list[st.card].backdrop, 'w300') : '');
     updateFocus();
   }
 
+  // Posters 180 wide, 28 apart, from the title's left edge: 8 fit on the screen.
+  var CARD_LEFT = 76, CARD_STEP = 208, CARDS_AHEAD = 6, cardFirst = 0;
+
   /**
-   * The card with focus (st.card, also while focus is elsewhere) is the wide one, the others narrow; past the third the
-   * row scrolls a card at a time (the holder slides), and the cards at the edges lose their text. Only the holder's
-   * transform and the backdrop's opacity animate: the widths change at once (older TVs).
+   * The row slides a poster at a time so the focused one always has the next in view. Only the holder's transform
+   * animates: every poster keeps its size and place in the row.
    */
   function layoutCards() {
-    var holder = $('cards'), nodes = holder.children, left = 80, scroll = Math.max(0, st.card - 2) * 360;
-    for (var i = 0; i < nodes.length; i++) {
-      var wide = i === st.card, w = wide ? 1040 : 320, n = nodes[i], at = left - scroll;
-      n.style.left = left + 'px';
-      n.style.width = w + 'px';
-      setClass(n, 'wide', wide);
-      setClass(n, 'edge', at < 0 || at > 1740);
-      if (wide && !n.getAttribute('data-back') && cards[i]) {
-        n.setAttribute('data-back', '1');
-        n.querySelector('.back').style.backgroundImage = 'url(' + Data.image(cards[i].backdrop, 'w1280') + ')';
-      }
-      left += w + 40;
-    }
-    holder.style.webkitTransform = holder.style.transform = 'translateX(' + (-scroll) + 'px)';
+    var holder = $('cards');
+    cardFirst = Math.max(0, st.card - CARDS_AHEAD, Math.min(cardFirst, st.card - 1));
+    holder.style.webkitTransform = holder.style.transform = 'translateX(' + (-cardFirst * CARD_STEP) + 'px)';
+  }
+
+  // MARK: - Hero
+
+  var heroKey = '', heroFront = 'heroA', heroTimer = 0, HERO_MS = 250;
+
+  /**
+   * The focused pick over the top of the screen, once its photo has loaded: a run along the row fades the text out at
+   * once and brings the photo and the text back together where the focus rests.
+   */
+  function heroSoon() {
+    var p = cards.length ? cards[Math.min(st.card, cards.length - 1)] : null;
+    var key = p ? [p.kind, p.id, p.backdrop, p.title, p.meta, p.overview].join('|') : '';
+    if (key === heroKey) return;
+    var moved = !p || heroKey.split('|').slice(0, 2).join('|') !== p.kind + '|' + p.id;
+    heroKey = key;
+    var txt = document.querySelector('#hero .txt');
+    if (moved) setClass(txt, 'out', true);
+    clearTimeout(heroTimer);
+    if (!p) return;
+    heroTimer = setTimeout(function () {
+      var url = Data.image(p.backdrop, 'w1280'), img = new Image();
+      img.onload = img.onerror = function () {
+        if (heroKey !== key) return;
+        var shot = $(heroFront);
+        if (shot.getAttribute('data-url') !== url) {
+          heroFront = heroFront === 'heroA' ? 'heroB' : 'heroA';
+          shot = $(heroFront);
+          shot.setAttribute('data-url', url);
+          shot.style.backgroundImage = 'url(' + url + ')';
+          setClass(shot, 'on', true);
+          setClass($(heroFront === 'heroA' ? 'heroB' : 'heroA'), 'on', false);
+        }
+        txt.children[0].textContent = p.title;
+        txt.children[1].textContent = p.meta || '';
+        txt.children[2].textContent = p.overview || '';
+        setClass(txt, 'out', false);
+      };
+      img.src = url;
+    }, moved ? HERO_MS : 0);
   }
 
   var bgUrl = null, bgFront = 'bgA';
@@ -518,7 +550,7 @@
 
   // MARK: - Shelf
 
-  var shelfFirst = 0, tileStep = 0, tileLeft = 0;
+  var shelfFirst = 0, tileStep = 0, tileLeft = 0, tileWidth = 0;
 
   function renderShelf() {
     var n = Math.min(shelf.length, SHELF_VISIBLE), gap = 48, pad = 40;
@@ -536,6 +568,7 @@
     tiles.innerHTML = '';
     tileStep = tw + gap;
     tileLeft = left;
+    tileWidth = tw;
     shelfFirst = Math.max(0, Math.min(shelfFirst, shelf.length - n));
     for (var i = 0; i < shelf.length; i++) {
       var t = el('div', 'tile', tiles);
@@ -543,6 +576,7 @@
       t.style.width = tw + 'px';
       t.style.height = th + 'px';
       face(shelf[i], t, wordFit(shelf[i].title, tw, 30));
+      el('div', 'glint', t);
       hover(t, Z.SHELF, i);
     }
     // More apps than fit: a small arrow inside the glass's edge on each side that has more, where no tile reaches
@@ -571,6 +605,15 @@
     var arrows = $('platter').children;
     arrows[0].style.visibility = shelfFirst > 0 ? '' : 'hidden';
     arrows[1].style.visibility = shelfFirst + n < shelf.length ? '' : 'hidden';
+  }
+
+  /** The focused app's name, centred under it. */
+  function labelShelf() {
+    var label = $('tlabel'), app = shelf[st.shelf];
+    if (!app) return;
+    if (label.textContent !== app.title) label.textContent = app.title;
+    var x = tileLeft + (st.shelf - shelfFirst) * tileStep + tileWidth / 2 - label.offsetWidth / 2;
+    label.style.webkitTransform = label.style.transform = 'translateX(' + Math.round(x) + 'px)';
   }
 
   /** Scrolls the shelf, one app at a time, so the focused app is shown. */
@@ -1328,6 +1371,7 @@
     st.tab = i;
     // A tab opens at its first pick, its row at the start: at once, as on Android, not sliding from the last tab's place.
     st.card = 0;
+    cardFirst = 0;
     var holder = $('cards');
     holder.style.webkitTransition = holder.style.transition = 'none';
     renderCards();
@@ -1451,7 +1495,8 @@
   var lastNight = null;
 
   function checkNight() {
-    var night = Data.isNight(Date.now());
+    // Over the hero's photo the home screen is always dark, as Apple TV's is.
+    var night = Data.isNight(Date.now()) || cards.length > 0;
     setClass(body, 'night', night);
     if (night === lastNight) return;
     lastNight = night;

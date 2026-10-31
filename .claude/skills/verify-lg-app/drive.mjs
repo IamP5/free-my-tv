@@ -239,16 +239,19 @@ async function checkPicks(tab, evaluate, waitfor, tmdb) {
   const [index, kind] = TABS[tab];
   if (!(await evaluate('Data.hasKey()'))) throw new Error('no TMDB key in this build: picks not run');
   // The list is fetched one request at a time (trending, each title's details, discover): give it time.
-  await waitfor(`document.querySelectorAll('#cards .card').length > 0 && [].every.call(document.querySelectorAll('#cards .card'), function (c) { return c.querySelector('.meta'); })`, 90000);
+  await waitfor(`document.querySelectorAll('#cards .card').length > 0 && Data.picks(${JSON.stringify(kind)}).every(function (p) { return p.meta; }) && document.querySelector('#hero .t').textContent === (Data.picks(${JSON.stringify(kind)})[0] || {}).title`, 90000);
   const page = await evaluate(`(function () {
     var tabs = document.getElementById('tabs').children, on = -1;
     for (var i = 0; i < tabs.length; i++) if ((' ' + tabs[i].className + ' ').indexOf(' on ') >= 0) on = i;
     var recs = null; try { recs = JSON.parse(localStorage.getItem('fmtv.recs')); } catch (e) {}
     return {
       on: on, onLabel: on >= 0 ? tabs[on].textContent : '', perTab: Prefs.cards(), series: tr('Series'),
-      cards: [].map.call(document.querySelectorAll('#cards .card'), function (c) {
-        return {title: c.querySelector('.name').textContent, meta: c.querySelector('.meta').textContent};
+      // The posters carry no text: the focused pick's name and meta are in the hero over them.
+      cards: [].map.call(document.querySelectorAll('#cards .card'), function (c, i) {
+        var p = Data.picks(${JSON.stringify(kind)})[i] || {};
+        return {title: p.title, meta: p.meta};
       }),
+      hero: {title: document.querySelector('#hero .t').textContent, meta: document.querySelector('#hero .m').textContent},
       shown: Data.picks(${JSON.stringify(kind)}).map(function (p) { return {kind: p.kind, id: p.id, title: p.title, app: p.app}; }),
       list: recs && recs.picks ? recs.picks.map(function (p) { return {kind: p.kind, id: p.id, title: p.title}; }) : []
     };
@@ -264,7 +267,8 @@ async function checkPicks(tab, evaluate, waitfor, tmdb) {
   }
   if (page.on !== index) problems.push(`tab ${index} should be on, tab ${page.on} (${page.onLabel}) is`);
   if (!page.cards.length || page.cards.length > page.perTab) problems.push(`${page.cards.length} cards, expected 1 to ${page.perTab}`);
-  if (page.cards.map((c) => c.title).join('|') !== page.shown.map((p) => p.title).join('|')) problems.push('cards on screen differ from Data.picks for this tab');
+  if (page.cards.length !== page.shown.length) problems.push(`${page.cards.length} posters on screen, Data.picks has ${page.shown.length} for this tab`);
+  if (page.shown.length && page.hero.title !== page.shown[0].title) problems.push(`hero shows "${page.hero.title}", the first pick is "${page.shown[0].title}"`);
   const shown = page.shown.map((p, i) => ({...p, meta: page.cards[i] ? page.cards[i].meta : '', origin: origin(p)}));
   for (const p of shown) {
     if (kind && p.kind !== kind) problems.push(`"${p.title}" is a ${p.kind} in the ${tab} tab`);

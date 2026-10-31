@@ -477,6 +477,7 @@ var Data = (function () {
       var best = bestBackdrop(o.images);
       if (best) p.backdrop = best;
       if (o.poster_path) p.poster = o.poster_path;
+      if (o.overview) p.overview = o.overview;
       var parts = [];
       if (p.kind === 'tv') parts.push(tr('Series'));
       if (o.genres && o.genres.length) {
@@ -529,7 +530,7 @@ var Data = (function () {
   function addPick(list, o, kind) {
     if (!o.backdrop_path) return;
     if (Prefs.hideAnimation() && animated(o)) return;
-    list.push({id: o.id, kind: kind, title: kind === 'movie' ? o.title : o.name, backdrop: o.backdrop_path, poster: o.poster_path || '', meta: '', app: null, detailed: false});
+    list.push({id: o.id, kind: kind, title: kind === 'movie' ? o.title : o.name, backdrop: o.backdrop_path, poster: o.poster_path || '', meta: '', overview: o.overview || '', app: null, detailed: false});
   }
 
   function keyOf(p) { return p.kind + ':' + p.id; }
