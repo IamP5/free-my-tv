@@ -343,7 +343,6 @@
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.SHELF && st.shelf === i);
     revealShelf();
     setClass(body, 'on-shelf', st.zone === Z.SHELF && shelf.length > 0);
-    labelShelf();
     list = document.querySelectorAll('#drawer .key');
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.DRAWER && st.drawer === i);
     list = document.querySelectorAll('#apps .cell');
@@ -550,7 +549,10 @@
 
   // MARK: - Shelf
 
-  var shelfFirst = 0, tileStep = 0, tileLeft = 0, tileWidth = 0;
+  // An app's corners: a fifth of its height, here and in All Apps (home.css), close to an Apple TV icon's.
+  var ICON_RADIUS = 0.2;
+
+  var shelfFirst = 0, tileStep = 0, tileLeft = 0;
 
   function renderShelf() {
     var n = Math.min(shelf.length, SHELF_VISIBLE), gap = 48, pad = 40;
@@ -563,18 +565,21 @@
     platter.style.width = (width + 2 * pad) + 'px';
     platter.style.top = (814 + 126 - th) + 'px';
     platter.style.height = (th + 2 * pad) + 'px';
+    // Concentric corners, as Apple's guidelines ask: the glass's radius is the tiles' plus the space between them.
+    var radius = Math.round(th * ICON_RADIUS);
+    platter.style.borderRadius = (radius + pad) + 'px';
     $('quotes').style.right = (1920 - left - width) + 'px';
     var tiles = $('tiles');
     tiles.innerHTML = '';
     tileStep = tw + gap;
     tileLeft = left;
-    tileWidth = tw;
     shelfFirst = Math.max(0, Math.min(shelfFirst, shelf.length - n));
     for (var i = 0; i < shelf.length; i++) {
       var t = el('div', 'tile', tiles);
       t.style.top = (854 + 126 - th) + 'px';
       t.style.width = tw + 'px';
       t.style.height = th + 'px';
+      t.style.borderRadius = radius + 'px';
       face(shelf[i], t, wordFit(shelf[i].title, tw, 30));
       el('div', 'glint', t);
       hover(t, Z.SHELF, i);
@@ -605,15 +610,6 @@
     var arrows = $('platter').children;
     arrows[0].style.visibility = shelfFirst > 0 ? '' : 'hidden';
     arrows[1].style.visibility = shelfFirst + n < shelf.length ? '' : 'hidden';
-  }
-
-  /** The focused app's name, centred under it. */
-  function labelShelf() {
-    var label = $('tlabel'), app = shelf[st.shelf];
-    if (!app) return;
-    if (label.textContent !== app.title) label.textContent = app.title;
-    var x = tileLeft + (st.shelf - shelfFirst) * tileStep + tileWidth / 2 - label.offsetWidth / 2;
-    label.style.webkitTransform = label.style.transform = 'translateX(' + Math.round(x) + 'px)';
   }
 
   /** Scrolls the shelf, one app at a time, so the focused app is shown. */
