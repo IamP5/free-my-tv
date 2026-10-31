@@ -1,7 +1,7 @@
 /*
  * The home screen for web-app TVs (LG webOS, Samsung Tizen), with the Android app's design and behavior (HomeView):
  *  - top: the "For You" title and the tabs (Explore, Movies, Shows); icon-only glass buttons at the right (Live TV,
- *    HDMI Inputs, Settings) and the crypto quotes at the end of the tab row;
+ *    HDMI Inputs, Settings) and a status capsule: the time and day over a pick's photo, and rain on the way;
  *  - three picks for this hour in the selected tab; the background is the focused one's photo, blurred, almost white;
  *  - the glass shelf with the apps; ↓ opens the drawer (inputs, shortcuts, weather, prices); ↑ or Back closes it;
  *  - a night look from sunset to sunrise; a screensaver after a few idle minutes.
@@ -335,7 +335,7 @@
     }
     list = $('buttons').children;
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.TOP && st.top === 3 + i);
-    setClass($('quotes'), 'hide', st.zone === Z.TOP && st.top >= 3);
+    setClass($('status'), 'hide', st.zone === Z.TOP && st.top >= 3);
     layoutCards();
     list = $('cards').children;
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.CARDS && st.card === i);
@@ -384,7 +384,7 @@
     return (r.left + r.right) / 2;
   }
 
-  // MARK: - Top: title, tabs, buttons, quotes
+  // MARK: - Top: title, tabs, buttons, status
 
   var TAB_KIND = [null, 'movie', 'tv'];
 
@@ -409,15 +409,21 @@
     }
   }
 
-  function renderRain() {
-    var q = $('quotes');
-    q.innerHTML = '';
+  /** The capsule by the buttons: time and day over the photo (the big clock shows them without picks), and rain. */
+  function renderStatus() {
+    var s = $('status');
+    s.innerHTML = '';
     var now = Date.now(), at = Prefs.weather() ? Data.rainAt(now) : 0;
+    if (cards.length) {
+      el('span', 'q now', s, formatDate('format|h:mm', now));
+      el('span', 'q day', s, formatDate('format|EEE d', now));
+    }
     if (at) {
-      var rain = el('span', 'q rain', q);
+      var rain = el('span', 'q rain', s);
       sym('rainy', rain);
       el('span', '', rain, at <= now ? tr('Rain likely now') : trf('Rain likely at {time}', {time: Data.hour(at)}));
     }
+    setClass(s, 'on', s.children.length > 0);
   }
 
   // MARK: - Picks and background
@@ -446,6 +452,7 @@
     checkNight();
     backdrop(list.length ? Data.image(list[st.card].backdrop, 'w300') : '');
     updateFocus();
+    renderStatus();
   }
 
   // Posters 180 wide, 28 apart, from the title's left edge: 8 fit on the screen.
@@ -545,7 +552,7 @@
   /** On the minute, so the clock never runs late (the 30-second refresh could, by up to 30 s). */
   function tickClock() {
     renderClock();
-    renderRain();   // the rain line moves on with the hour
+    renderStatus();   // the time, and the rain line moves on with the hour
     setTimeout(tickClock, 60000 - Date.now() % 60000 + 50);
   }
 
@@ -570,7 +577,7 @@
     // Concentric corners, as Apple's guidelines ask: the glass's radius is the tiles' plus the space between them.
     var radius = Math.round(th * ICON_RADIUS);
     platter.style.borderRadius = (radius + pad) + 'px';
-    $('quotes').style.right = (1920 - left - width) + 'px';
+    $('status').style.right = (1920 - left - width) + 'px';
     var tiles = $('tiles');
     tiles.innerHTML = '';
     tileStep = tw + gap;
@@ -808,7 +815,7 @@
       {label: tr('Watch from the screensaver'), toggle: Prefs.saverWatch(),
         step: function () { Prefs.set('saverWatch', !Prefs.saverWatch()); }},
       {label: tr('Weather widget'), toggle: Prefs.weather(),
-        step: function () { Prefs.set('weather', !Prefs.weather()); renderPanels(); renderRain(); }},
+        step: function () { Prefs.set('weather', !Prefs.weather()); renderPanels(); renderStatus(); }},
       {label: tr('City'), value: Prefs.city() || '—', opens: true, city: true,
         step: function (d) { if (d >= 0) openCities(); }},
       {label: tr('Forecast'), value: Prefs.forecast() === 'days' ? tr('Next days') : tr('Next hours'),
@@ -1682,7 +1689,7 @@
 
   function renderAll() {
     renderTop();
-    renderRain();
+    renderStatus();
     cards = [];
     renderCards();
     renderShelf();
@@ -1727,7 +1734,7 @@
   }
 
   Data.onChange(function () {
-    renderRain();
+    renderStatus();
     renderCards();
     renderPanels();
     checkNight();

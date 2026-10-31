@@ -335,6 +335,7 @@
  "dim|Low": "Matala",
  "dim|Medium": "Keskitaso",
  "format|EEE": "EEE",
+ "format|EEE d": "EEE d.",
  "format|EEEE, MMMM d": "EEEE d. MMMM",
  "format|h a": "H",
  "format|h:mm": "H.mm",

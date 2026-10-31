@@ -335,6 +335,7 @@
  "dim|Low": "Faible",
  "dim|Medium": "Moyen",
  "format|EEE": "EEE",
+ "format|EEE d": "EEE d",
  "format|EEEE, MMMM d": "EEEE d MMMM",
  "format|h a": "HH 'h'",
  "format|h:mm": "HH:mm",

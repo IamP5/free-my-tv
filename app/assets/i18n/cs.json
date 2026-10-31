@@ -335,6 +335,7 @@
  "dim|Low": "Nízké",
  "dim|Medium": "Střední",
  "format|EEE": "EEE",
+ "format|EEE d": "EEE d.",
  "format|EEEE, MMMM d": "EEEE d. MMMM",
  "format|h a": "H:mm",
  "format|h:mm": "H:mm",

@@ -335,6 +335,7 @@
  "dim|Low": "低",
  "dim|Medium": "中",
  "format|EEE": "EEE",
+ "format|EEE d": "d日 EEE",
  "format|EEEE, MMMM d": "M月d日 EEEE",
  "format|h a": "H時",
  "format|h:mm": "HH:mm",

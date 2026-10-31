@@ -335,6 +335,7 @@
  "dim|Low": "약하게",
  "dim|Medium": "보통",
  "format|EEE": "EEE",
+ "format|EEE d": "d일 (EEE)",
  "format|EEEE, MMMM d": "M월 d일 EEEE",
  "format|h a": "a h시",
  "format|h:mm": "H:mm",

@@ -335,6 +335,7 @@
  "dim|Low": "Düşük",
  "dim|Medium": "Orta",
  "format|EEE": "EEE",
+ "format|EEE d": "d EEE",
  "format|EEEE, MMMM d": "d MMMM EEEE",
  "format|h a": "HH:mm",
  "format|h:mm": "HH:mm",
