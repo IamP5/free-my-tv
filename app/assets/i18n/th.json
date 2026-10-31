@@ -206,6 +206,8 @@
  "Quotes widget": "วิดเจ็ตราคา",
  "RECOMMENDATIONS": "แนะนำ",
  "Rain": "ฝนตก",
+ "Rain likely at {time}": "มีโอกาสฝนตกเวลา {time}",
+ "Rain likely now": "ขณะนี้มีโอกาสฝนตก",
  "Recent Apps": "แอปล่าสุด",
  "Recommended on Trakt": "แนะนำบน Trakt",
  "Remote Buttons": "ปุ่มรีโมท",

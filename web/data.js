@@ -162,7 +162,7 @@ var Data = (function () {
   // Both forecasts in one answer, the next 48 hours and today plus 5 days: Home Settings → Forecast switches without
   // asking again, and offline too.
   var QUERY = '&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,weather_code'
-      + '&hourly=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=6&forecast_hours=48';
+      + '&hourly=temperature_2m,weather_code,is_day,precipitation_probability&timezone=auto&forecast_days=6&forecast_hours=48';
   var weather = null, weatherAt = 0, fetchingWeather = false;
   (function () {
     var w = stored('weather');
@@ -183,9 +183,14 @@ var Data = (function () {
     var w = {
       temp: o.current.temperature_2m, code: o.current.weather_code, isDay: o.current.is_day !== 0,
       max: dl.temperature_2m_max[0], min: dl.temperature_2m_min[0],
-      sunrise: localTime(dl.sunrise[0], off), sunset: localTime(dl.sunset[0], off), hours: [], days: []
+      sunrise: localTime(dl.sunrise[0], off), sunset: localTime(dl.sunset[0], off), hours: [], days: [], wet: []
     };
     var hr = o.hourly;
+    // The hours with rain likely (60% or more), from the one under way: the clock's line picks the current one.
+    for (var r = 0; hr && hr.precipitation_probability && r < hr.time.length; r++) {
+      var start = localTime(hr.time[r], off);
+      if (start >= now - 3600000 && start < now + 6 * 3600000 && hr.precipitation_probability[r] >= 60) w.wet.push(start);
+    }
     for (var i = 0; hr && i < hr.time.length && w.hours.length < 6; i++) {
       var at = localTime(hr.time[i], off);
       if (at <= now) continue;
@@ -661,6 +666,12 @@ var Data = (function () {
     cityChanged: function () { weather = null; weatherAt = 0; refreshWeather(); changed(); },
     get weather() { return weather; },
     get weatherAt() { return weatherAt; },
+    /** The start of the first hour with rain likely, under way or within 6 hours of now; 0 when none. */
+    rainAt: function (now) {
+      var wet = weather ? weather.wet : [];
+      for (var i = 0; i < wet.length; i++) if (wet[i] + 3600000 > now && wet[i] < now + 6 * 3600000) return wet[i];
+      return 0;
+    },
     prices: prices,
     changes: changes,
     get pricesAt() { return pricesAt; },

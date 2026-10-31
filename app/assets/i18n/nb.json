@@ -206,6 +206,8 @@
  "Quotes widget": "Kurswidget",
  "RECOMMENDATIONS": "ANBEFALINGER",
  "Rain": "Regn",
+ "Rain likely at {time}": "Regn sannsynlig kl. {time}",
+ "Rain likely now": "Regn sannsynlig nå",
  "Recent Apps": "Nylige apper",
  "Recommended on Trakt": "Anbefalt på Trakt",
  "Remote Buttons": "Fjernkontrollknapper",

@@ -159,6 +159,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #quotes.hide { opacity: 0; }
 .night #quotes { color: rgba(245, 245, 247, 0.62); }
 .night #quotes svg { fill: rgba(245, 245, 247, 0.55); }
+#quotes .rain { color: #2F6FB0; }
+#quotes .rain .sym { width: 20px; height: 20px; vertical-align: -4px; margin-right: 6px; }
+.night #quotes .rain { color: #8EC1F0; }
 
 /* Live TV, HDMI Inputs and Settings: glass circles; the focused one turns white, with its name below. */
 .round {

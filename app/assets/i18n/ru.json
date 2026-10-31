@@ -206,6 +206,8 @@
  "Quotes widget": "Виджет котировок",
  "RECOMMENDATIONS": "РЕКОМЕНДАЦИИ",
  "Rain": "Дождь",
+ "Rain likely at {time}": "Вероятен дождь в {time}",
+ "Rain likely now": "Сейчас вероятен дождь",
  "Recent Apps": "Недавние приложения",
  "Recommended on Trakt": "Рекомендовано на Trakt",
  "Remote Buttons": "Кнопки пульта",

@@ -412,6 +412,12 @@
   function renderQuotes() {
     var q = $('quotes'), coins = Data.activeCoins();
     q.innerHTML = '';
+    var now = Date.now(), at = Prefs.weather() ? Data.rainAt(now) : 0;
+    if (at) {
+      var rain = el('span', 'q rain', q);
+      sym('rainy', rain);
+      el('span', '', rain, at <= now ? tr('Rain likely now') : trf('Rain likely at {time}', {time: Data.hour(at)}));
+    }
     for (var i = 0; i < coins.length; i++) {
       var item = el('span', 'q', q);
       coin(coins[i], item);
@@ -544,6 +550,7 @@
   /** On the minute, so the clock never runs late (the 30-second refresh could, by up to 30 s). */
   function tickClock() {
     renderClock();
+    renderQuotes();   // the rain line moves on with the hour
     setTimeout(tickClock, 60000 - Date.now() % 60000 + 50);
   }
 
@@ -806,7 +813,7 @@
       {label: tr('Watch from the screensaver'), toggle: Prefs.saverWatch(),
         step: function () { Prefs.set('saverWatch', !Prefs.saverWatch()); }},
       {label: tr('Weather widget'), toggle: Prefs.weather(),
-        step: function () { Prefs.set('weather', !Prefs.weather()); renderPanels(); }},
+        step: function () { Prefs.set('weather', !Prefs.weather()); renderPanels(); renderQuotes(); }},
       {label: tr('City'), value: Prefs.city() || '—', opens: true, city: true,
         step: function (d) { if (d >= 0) openCities(); }},
       {label: tr('Forecast'), value: Prefs.forecast() === 'days' ? tr('Next days') : tr('Next hours'),

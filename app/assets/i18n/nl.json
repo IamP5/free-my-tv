@@ -206,6 +206,8 @@
  "Quotes widget": "Koerswidget",
  "RECOMMENDATIONS": "AANBEVELINGEN",
  "Rain": "Regen",
+ "Rain likely at {time}": "Kans op regen om {time}",
+ "Rain likely now": "Nu kans op regen",
  "Recent Apps": "Recente apps",
  "Recommended on Trakt": "Aanbevolen op Trakt",
  "Remote Buttons": "Afstandsbedieningsknoppen",
