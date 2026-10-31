@@ -479,7 +479,7 @@ var Data = (function () {
       var b = list[i];
       if (!b.file_path) continue;
       var s = (b.iso_639_1 === null ? 1e7 : 0) + worth(b.width || 0) * 100 + (b.vote_average || 0);
-      if (s > score) { score = s; best = b.file_path; }
+      if (s > score) { score = s; best = b; }
     }
     return best;
   }
@@ -490,8 +490,9 @@ var Data = (function () {
         + I18N.base + ',en', function (err, o) {
       if (err) { done(err); return; }
       var best = bestBackdrop(o.images, widthScore), largest = bestBackdrop(o.images, function (w) { return w; });
-      if (best) p.backdrop = best;
-      p.backdropMax = largest && largest !== best ? largest : '';   // the hero's last step, once it's still
+      // The hero fades in a photo the TV decodes ahead (TMDB's w1280 of one too wide), then turns into the largest.
+      if (best) { p.backdrop = best.file_path; p.backdropSize = best.width > DECODABLE ? 'w1280' : 'original'; }
+      p.backdropMax = largest && (largest !== best || p.backdropSize === 'w1280') ? largest.file_path : '';
       if (o.poster_path) p.poster = o.poster_path;
       if (o.overview) p.overview = o.overview;
       var parts = [];

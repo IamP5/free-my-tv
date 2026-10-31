@@ -471,8 +471,8 @@
 
   var heroKey = '', heroFront = 'heroA', heroTimer = 0, HERO_MS = 250, HERO_FADE_MS = 700;
 
-  /** The hero's photo at the screen's size ('original': TMDB has nothing between 1280 and it), and a quick one to show first. */
-  function sharpImage(p) { return Data.image(p.backdrop, 'original'); }
+  /** The photo the hero fades in (one the TV decodes ahead), and a quick one to show first. */
+  function sharpImage(p) { return Data.image(p.backdrop, p.backdropSize || 'original'); }
   function softImage(p) { return Data.image(p.backdrop, 'w1280'); }
 
   // Photos the browser has downloaded (by URL), so the hero shows them sharp at once.
