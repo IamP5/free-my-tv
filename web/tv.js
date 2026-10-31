@@ -221,10 +221,10 @@ var TV = (function () {
     ['netflix', 'Netflix', 'icons/netflix.svg'], ['youtube.leanback.v4', 'YouTube', 'icons/youtube.png'],
     ['amazon', 'Prime Video', 'icons/prime.png'], ['com.disney.disneyplus-prod', 'Disney+'],
     ['com.wbd.stream', 'HBO Max', 'icons/max.svg'], ['com.hbo.hbomax', 'Max', 'icons/max.svg'],
-    ['com.apple.appletv', 'Apple TV'], ['hulu', 'Hulu'], ['com.peacock.tv', 'Peacock'], ['com.nfl.app', 'NFL'],
+    ['com.apple.appletv', 'Apple TV', 'icons/appletv.svg'], ['hulu', 'Hulu'], ['com.peacock.tv', 'Peacock'], ['com.nfl.app', 'NFL'],
     ['globoplaywebos', 'Globoplay'], ['spotify-beehive', 'Spotify', 'icons/spotify.svg'],
-    ['tv.twitch.tv.starshot.lg', 'Twitch', '', '#9146FF'], ['cdp-30', 'Plex', '', '#E5A00D'],
-    ['org.jellyfin.webos', 'Jellyfin', 'icons/jellyfin.svg'], ['com.crunchyroll.webapp', 'Crunchyroll', '', '#F47521'],
+    ['tv.twitch.tv.starshot.lg', 'Twitch', 'icons/twitch.svg', '#9146FF'], ['cdp-30', 'Plex', 'icons/plex.svg', '#E5A00D'],
+    ['org.jellyfin.webos', 'Jellyfin', 'icons/jellyfin.svg'], ['com.crunchyroll.webapp', 'Crunchyroll', 'icons/crunchyroll.svg', '#F47521'],
     ['com.webos.app.browser', 'Web Browser', '', '#3A7BD5'], ['space.nuvio.webos', 'Nuvio TV', '', '#0E0F12']
   ];
 
