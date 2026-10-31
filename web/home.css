@@ -222,16 +222,24 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 #hero { position: absolute; left: 0; top: 0; width: 1920px; height: 880px; visibility: hidden; }
 .hero #hero { visibility: visible; }
-/* The photo fades into the sky at its foot (a mask: no seam where the sky's own blurred photo begins). */
-#hero .pic {
+#hero .pic { position: absolute; left: 0; top: 0; width: 1920px; height: 880px; z-index: 0; }   /* its layers stay under the text */
+/*
+ * The photo fades into the sky at its foot: the sky as it shows there, drawn with the fade in its alpha (home.js,
+ * drawFoot), over the photo and its shade. A mask did the same, but a 2 GB LG then drew both photos through it on every
+ * frame of a fade: 22 of 42 frames drawn, against 31 without.
+ */
+#hero .foot {
   position: absolute;
   left: 0;
-  top: 0;
+  top: 440px;
   width: 1920px;
-  height: 880px;
-  -webkit-mask-image: -webkit-linear-gradient(top, #000 52%, rgba(0, 0, 0, 0));
-  -webkit-mask-image: linear-gradient(#000 52%, rgba(0, 0, 0, 0));
+  height: 440px;
+  z-index: 3;
+  opacity: 0;
+  -webkit-transition: opacity 0.8s;
+  transition: opacity 0.8s;   /* in step with #sky canvas */
 }
+#hero .foot.on { opacity: 1; }
 #hero .shot {
   position: absolute;
   left: 0;

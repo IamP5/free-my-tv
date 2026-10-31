@@ -603,6 +603,8 @@
     if (!url) {
       setClass($('bgA'), 'on', false);
       setClass($('bgB'), 'on', false);
+      setClass($('footA'), 'on', false);
+      setClass($('footB'), 'on', false);
       return;
     }
     var img = new Image();
@@ -610,11 +612,41 @@
       if (bgUrl !== url) return;
       var canvas = $(next), ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      drawFoot(canvas, $(footOf(next)));
       setClass(canvas, 'on', true);
+      setClass($(footOf(next)), 'on', true);
       setClass($(bgFront), 'on', false);
+      setClass($(footOf(bgFront)), 'on', false);
       bgFront = next;
     };
     img.src = url;
+  }
+
+  function footOf(bg) { return bg === 'bgA' ? 'footA' : 'footB'; }
+
+  // Where the hero's foot begins and ends on the screen, and where its photo starts fading into the sky (52% down).
+  var FOOT_TOP = 440, HERO_BOTTOM = 880, FADE_FROM = 457.6;
+
+  /**
+   * The sky as it shows under the hero's foot (#sky canvas: 108% of the screen from -4%, under the night veil, which
+   * the hero always has), transparent down to FADE_FROM and opaque at the hero's bottom.
+   */
+  function drawFoot(sky, foot) {
+    var ctx = foot.getContext('2d'), w = foot.width, h = foot.height;
+    function sx(x) { return (x / 1920 + 0.04) / 1.08 * sky.width; }
+    function sy(y) { return (y / 1080 + 0.04) / 1.08 * sky.height; }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0, 0, w, h);
+    ctx.drawImage(sky, sx(0), sy(FOOT_TOP), sx(1920) - sx(0), sy(HERO_BOTTOM) - sy(FOOT_TOP), 0, 0, w, h);
+    ctx.fillStyle = 'rgba(11, 11, 13, 0.78)';   // .night #sky .veil
+    ctx.fillRect(0, 0, w, h);
+    var fade = ctx.createLinearGradient(0, 0, 0, h);
+    fade.addColorStop((FADE_FROM - FOOT_TOP) / (HERO_BOTTOM - FOOT_TOP), 'rgba(0, 0, 0, 0)');
+    fade.addColorStop(1, '#000');
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.fillStyle = fade;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = 'source-over';
   }
 
   // As HomeView's bgFollow: the background follows the focused pick.
