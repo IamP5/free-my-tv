@@ -440,21 +440,37 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   position: absolute;
   top: 540px;
   height: 126px;
-  border-radius: 20px;
+  border-radius: 26px;   /* a fifth of its height, as the apps' (home.js ICON_RADIUS) */
   text-align: center;
   color: #1D1D1F;
-  -webkit-transition: -webkit-transform 0.19s cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 0.19s, background-color 0.14s;
-  transition: transform 0.19s cubic-bezier(0.2, 0.9, 0.3, 1.2), box-shadow 0.19s, background-color 0.14s;
+  -webkit-transition: -webkit-transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 0.3s, color 0.25s;
+  transition: transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 0.3s, color 0.25s;
+}
+/* Focused, the key turns white: a layer that fades in, since the glass's gradient can't fade to a color. */
+.key::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 26px;
+  background: #F5F5F7;
+  opacity: 0;
+  -webkit-transition: opacity 0.25s;
+  transition: opacity 0.25s;
 }
 .key .sym { position: absolute; left: 50%; top: 33px; width: 34px; height: 34px; margin-left: -17px; }
 .key .label { position: absolute; left: 8px; right: 8px; top: 82px; font-size: 23px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .key.off { color: #8E8E93; }
-.key.focus { background: #F5F5F7; color: #1C1C1E; -webkit-transform: scale(1.07); transform: scale(1.07); box-shadow: 0 16px 34px rgba(0, 0, 0, 0.42); z-index: 2; }
+.key.focus { color: #1C1C1E; -webkit-transform: translateY(-6px) scale(1.08); transform: translateY(-6px) scale(1.08); box-shadow: 0 22px 40px rgba(0, 0, 0, 0.42); z-index: 2; }
+.key.focus::before { opacity: 1; }
 .night .key { color: rgba(255, 255, 255, 0.95); }
 .night .key.off { color: rgba(255, 255, 255, 0.42); }
 .night .key.focus { color: #1C1C1E; }
 
-.panel { position: absolute; top: 708px; height: 300px; border-radius: 30px; overflow: hidden; color: #1D1D1F; }
+/* Concentric with the keys: their 26 plus the panels' 34 of padding. */
+.panel { position: absolute; top: 708px; height: 300px; border-radius: 60px; overflow: hidden; color: #1D1D1F; }
 .night .panel { color: #F5F5F7; }
 .panel .head { position: absolute; left: 34px; top: 30px; font-size: 25px; font-weight: 600; color: #6E6E73; white-space: nowrap; }
 .panel .side { position: absolute; right: 34px; top: 33px; font-size: 21px; font-weight: 500; color: #8E8E93; white-space: nowrap; }
