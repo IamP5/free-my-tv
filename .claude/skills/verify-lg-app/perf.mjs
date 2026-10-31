@@ -3,6 +3,11 @@
 // port 9998) or a verification run's headless Chrome. No dependencies (Node 22+ has WebSocket).
 //
 //   node perf.mjs HOST:PORT [--cycles N] [--trace FILE] [--throttle X] [--css RULES] [--detail] [--no-raf] [--keys down,up]
+//                 [--on card] [--window MS] [--wait MS] [--auto N]
+//
+// --on card starts from the posters (--keys right,left then measures the hero's change of pick); --window and --wait
+// set the span measured after each key and the pause before the next (the hero waits 250 ms, loads, fades for 700).
+// --auto N presses nothing: it waits on the shelf for the hero's carousel to move on N times and measures each move.
 //
 // Each cycle presses ↓ on the shelf, waits, presses ↑, waits (--keys right,left measures a move along the shelf instead). Prints, per transition, the longest frame and the frames
 // over 1.5 vsyncs from requestAnimationFrame, and with --trace the main thread's and the compositor's work in the
@@ -16,8 +21,8 @@ const target = args[0];
 const opt = (name, def) => { const i = args.indexOf('--' + name); return i > 0 ? args[i + 1] : def; };
 const CYCLES = +opt('cycles', 5), TRACE = opt('trace', ''), THROTTLE = +opt('throttle', 1), CSS = opt('css', ''), DETAIL = args.includes('--detail'), RAF = !args.includes('--no-raf');
 const KEYS = {left: [37, 'ArrowLeft'], up: [38, 'ArrowUp'], right: [39, 'ArrowRight'], down: [40, 'ArrowDown']};
-const PAIR = opt('keys', 'down,up').split(',');
-const WINDOW_MS = 700;   // the drawer's transform runs 380 ms; what follows it (late paints, raster) counts too
+const PAIR = opt('keys', 'down,up').split(','), ON = opt('on', 'tile'), WAIT_MS = +opt('wait', 1400);
+const WINDOW_MS = +opt('window', 700), SWAP_MS = +opt('window', 500), AUTO = +opt('auto', 0);   // the drawer's transform runs 380 ms; what follows it (late paints, raster) counts too
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 if (!target) { console.error('usage: perf.mjs HOST:PORT [--cycles N] [--trace FILE] [--throttle X]'); process.exit(2); }
 
@@ -66,11 +71,12 @@ if (CSS) await evaluate(`(function (css) {
 if (CSS) await sleep(1500);
 else await evaluate(`(function (s) { if (s) s.parentNode.removeChild(s); })(document.getElementById('perf-css'))`);
 
-// On the shelf, drawer closed, before anything is measured.
+// On the shelf (or the posters), drawer closed, before anything is measured.
 if (await drawerOpen()) { await press(38, 'ArrowUp'); await sleep(800); }
-if (!/\btile\b/.test(await evaluate(`(document.querySelector('.focus') || {}).className || ''`))) {
-  console.error('focus is not on the shelf; put it there first'); process.exit(1);
-}
+const focused = () => evaluate(`(document.querySelector('.focus') || {}).className || ''`);
+if (ON === 'card' && /\btile\b/.test(await focused())) { await press(38, 'ArrowUp'); await sleep(WAIT_MS); }
+if (ON === 'tile' && /\bcard\b/.test(await focused())) { await press(40, 'ArrowDown'); await sleep(WAIT_MS); }
+if (!new RegExp('\\b' + ON + '\\b').test(await focused())) { console.error(`focus is not on a ${ON}; put it there first`); process.exit(1); }
 
 if (RAF) await evaluate(`(function () {
   window.__perf = {frames: [], on: true};
@@ -91,14 +97,31 @@ if (TRACE) {
 }
 
 const marks = [];
-for (let c = 0; c < CYCLES; c++) {
+// The carousel's moves, seen from the page: the first frame after FreeMyTV.state.card changed.
+if (AUTO) await evaluate(`(function () {
+  var last = FreeMyTV.state.card, photo = '';
+  window.__auto = [];
+  clearInterval(window.__autoTimer);   // one left by an earlier run would count every move twice
+  window.__autoTimer = setInterval(function () {
+    // The hero's photo fading in (the front one changed): marked 'fade' for the trace.
+    var front = document.querySelector('#hero .shot[style*="z-index: 1"]'), url = front ? front.getAttribute('data-url') : '';
+    if (url !== photo) { photo = url; performance.mark('fade'); }
+    if (FreeMyTV.state.card === last) return;
+    last = FreeMyTV.state.card;
+    performance.mark('auto');
+    __auto.push(performance.now());
+  }, 50);
+})()`);
+while (AUTO && (await evaluate(`__auto.length`)) < AUTO) await sleep(500);
+if (AUTO) { await sleep(WAIT_MS); (await evaluate(`__auto`)).slice(0, AUTO).forEach((at) => marks.push({kind: 'auto', at})); }
+for (let c = 0; c < (AUTO ? 0 : CYCLES); c++) {
   for (const [i, kind] of [[0, 'open'], [1, 'close']]) {
     const [code, key] = KEYS[PAIR[i]];
     const at = await evaluate(`performance.now()`);
     await evaluate(`performance.mark('${kind}')`);
     await press(code, key);
     marks.push({kind, at});
-    await sleep(1400);
+    await sleep(WAIT_MS);
   }
 }
 const frames = RAF ? await evaluate(`(__perf.on = false, __perf.frames)`) : [];
@@ -119,13 +142,13 @@ const rows = marks.map((m) => {
 });
 // The same span while nothing moves, at the end of each wait: what the TV drops anyway.
 const idle = marks.map((m) => {
-  const inside = frames.filter((t) => t >= m.at + 1400 - WINDOW_MS && t <= m.at + 1400);
+  const inside = frames.filter((t) => t >= m.at + WAIT_MS - WINDOW_MS && t <= m.at + WAIT_MS);
   return inside.slice(1).map((t, i) => t - inside[i]).filter((g) => g > vsync * 1.5).length;
 });
 const median = (xs) => { const s = xs.slice().sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
 console.log(`vsync ~${vsync.toFixed(1)} ms; window ${WINDOW_MS} ms after each key`);
 console.log(`idle  late frames in the same span with nothing moving: ${idle.join(' ')}`);
-for (const kind of ['open', 'close']) {
+for (const kind of [...new Set(marks.map((m) => m.kind))]) {
   const r = rows.filter((x) => x.kind === kind);
   console.log(`${kind.padEnd(5)} longest frame ms: ${r.map((x) => x.longest.toFixed(0)).join(' ')} (median ${median(r.map((x) => x.longest)).toFixed(0)})` +
     `  | key→first frame: ${r.map((x) => x.firstFrame.toFixed(0)).join(' ')}` +
@@ -141,20 +164,21 @@ if (TRACE) {
   await finished;
   fs.writeFileSync(TRACE, JSON.stringify({traceEvents: events}));
   // The marks in the trace's clock, so each transition's window can be cut out of it.
-  const traceMarks = events.filter((e) => e.cat && e.cat.indexOf('blink.user_timing') >= 0 && (e.name === 'open' || e.name === 'close'));
+  const traceMarks = events.filter((e) => e.cat && e.cat.indexOf('blink.user_timing') >= 0 && (e.name === 'open' || e.name === 'close' || e.name === 'auto'));
   const threads = {};
   for (const e of events) if (e.name === 'thread_name') threads[e.pid + ':' + e.tid] = e.args.name;
-  // Frames the display drew in the first 500 ms (the slide is 380, the sky's lift 450): one per 16.7 ms is smooth.
+  // Frames the display drew in the first 500 ms (the drawer's slide is 380, the sky's lift 450), or --window: one per
+  // 16.7 ms is smooth.
   const swaps = events.filter((e) => e.name === 'Display::DrawAndSwap' && e.ph === 'X').map((e) => e.ts);
-  for (const kind of ['open', 'close']) {
+  for (const kind of [...new Set(marks.map((m) => m.kind))]) {
     const per = traceMarks.filter((e) => e.name === kind).map((m) => {
-      const t = swaps.filter((s) => s >= m.ts && s < m.ts + 500000);
+      const t = swaps.filter((s) => s >= m.ts && s < m.ts + SWAP_MS * 1000);
       const gaps = t.slice(1).map((s, i) => (s - t[i]) / 1000);
       return `${t.length} drawn, longest gap ${Math.max(0, ...gaps).toFixed(0)} ms`;
     });
     console.log(`${kind}: ${per.join(' | ')}`);
   }
-  for (const kind of ['open', 'close']) {
+  for (const kind of [...new Set(marks.map((m) => m.kind))]) {
     const wins = traceMarks.filter((e) => e.name === kind).map((e) => [e.ts, e.ts + WINDOW_MS * 1000]);
     const sum = {};
     for (const e of events) {
@@ -168,6 +192,12 @@ if (TRACE) {
     console.log(`\n${kind}: work per transition (${wins.length} windows), by thread / event`);
     for (const [k, v] of top) console.log(`  ${(v.ms / wins.length).toFixed(1).padStart(7)} ms  max ${v.max.toFixed(1).padStart(6)}  n ${String(v.n).padStart(4)}  ${k}`);
   }
+  // --auto: the frames drawn while each photo fades in (700 ms), what a person sees move.
+  const fades = events.filter((e) => e.name === 'fade' && e.cat && e.cat.indexOf('blink.user_timing') >= 0).map((e) => e.ts);
+  if (fades.length) console.log('fades: ' + fades.map((f) => {
+    const t = swaps.filter((s) => s >= f && s < f + 700000), gaps = t.slice(1).map((s, i) => (s - t[i]) / 1000);
+    return `${t.length} drawn, longest gap ${Math.max(0, ...gaps).toFixed(0)} ms`;
+  }).join(' | '));
   console.log(`\ntrace: ${TRACE} (${events.length} events)`);
 }
 cdp.close();
