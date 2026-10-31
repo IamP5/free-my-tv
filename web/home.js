@@ -1656,6 +1656,20 @@
   });
   document.addEventListener('mousemove', function () { poke(); });
 
+  // The Magic Remote's wheel moves like ↑ ↓. One notch can send several events: one move per 150 ms.
+  var wheelAt = 0;
+  function wheel(e) {
+    if (typingIn('citypick') || typingIn('keypick')) return;
+    e.preventDefault();
+    if (poke()) return;
+    var dy = e.deltaY !== undefined ? e.deltaY : -e.wheelDelta, now = Date.now();
+    if (!dy || now - wheelAt < 150) return;
+    wheelAt = now;
+    move(0, dy > 0 ? 1 : -1);
+  }
+  // passive: false, or newer Chromium ignores preventDefault on the document; older ones read it as capture, the same here.
+  document.addEventListener('onwheel' in document ? 'wheel' : 'mousewheel', wheel, {passive: false});
+
   /**
    * In a text field, the keys type (← → move in the text, Delete erases). OK or the keyboard's Done searches (or saves); Back,
    * its Cancel or ↑ ↓ leave the field. Samsung's keyboard sends Done as 65376 and Cancel as 65385. True: handled here.
