@@ -17,3 +17,6 @@ __pycache__/
 # macOS
 .DS_Store
 tools/.i18n-cache.json
+
+# Claude Code: local notes about this machine and TV
+CLAUDE.local.md

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "free-my-tv preview",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "python3 webos/build.py --preview && python3 -m http.server 8765 -d out/webos"],
+      "port": 8765
+    }
+  ]
+}
