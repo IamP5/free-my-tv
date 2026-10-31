@@ -462,13 +462,23 @@ var Data = (function () {
     }
   }
 
-  /** The best backdrop: no text over it, the largest, then the best rated. */
-  function bestBackdrop(images) {
+  // The widest photo a TV can decode ahead of showing it. A 2 GB LG (webOS 23, drawn at 3840) decoded every 2276-wide
+  // one and none from 3480 up: a 4K photo was decoded as it was drawn, which held the hero's fade 300-460 ms.
+  var DECODABLE = 2304;
+
+  /** How much a photo's width is worth: Full HD up to DECODABLE, the widest; else the narrowest above; else the widest below. */
+  function widthScore(w) {
+    if (w >= 1920 && w <= DECODABLE) return 3e4 + w;
+    return w > DECODABLE ? 2e4 - w / 10 : 1e4 + w / 10;
+  }
+
+  /** The best backdrop: no text over it, then the width worth most (worth), then the best rated. */
+  function bestBackdrop(images, worth) {
     var list = images && images.backdrops, best = null, score = -1;
     for (var i = 0; list && i < list.length; i++) {
       var b = list[i];
       if (!b.file_path) continue;
-      var s = (b.iso_639_1 === null ? 1e7 : 0) + Math.min(b.width || 0, 3840) * 100 + (b.vote_average || 0);
+      var s = (b.iso_639_1 === null ? 1e7 : 0) + worth(b.width || 0) * 100 + (b.vote_average || 0);
       if (s > score) { score = s; best = b.file_path; }
     }
     return best;
@@ -479,8 +489,9 @@ var Data = (function () {
     tmdb('/' + p.kind + '/' + p.id + '?language=' + lang() + '&append_to_response=watch/providers,images&include_image_language=null,'
         + I18N.base + ',en', function (err, o) {
       if (err) { done(err); return; }
-      var best = bestBackdrop(o.images);
+      var best = bestBackdrop(o.images, widthScore), largest = bestBackdrop(o.images, function (w) { return w; });
       if (best) p.backdrop = best;
+      p.backdropMax = largest && largest !== best ? largest : '';   // the hero's last step, once it's still
       if (o.poster_path) p.poster = o.poster_path;
       if (o.overview) p.overview = o.overview;
       var parts = [];

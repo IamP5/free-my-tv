@@ -469,11 +469,65 @@
 
   // MARK: - Hero
 
-  var heroKey = '', heroFront = 'heroA', heroTimer = 0, HERO_MS = 250;
+  var heroKey = '', heroFront = 'heroA', heroTimer = 0, HERO_MS = 250, HERO_FADE_MS = 700;
+
+  /** The hero's photo at the screen's size ('original': TMDB has nothing between 1280 and it), and a quick one to show first. */
+  function sharpImage(p) { return Data.image(p.backdrop, 'original'); }
+  function softImage(p) { return Data.image(p.backdrop, 'w1280'); }
+
+  // Photos the browser has downloaded (by URL), so the hero shows them sharp at once.
+  var loaded = {}, loading = {};
+
+  function preload(url, done) {
+    if (loaded[url]) { if (done) done(true); return; }
+    if (loading[url] && !done) return;
+    loading[url] = true;
+    var img = new Image();
+    img.onload = function () { loaded[url] = true; delete loading[url]; if (done) done(true); };
+    img.onerror = function () { delete loading[url]; if (done) done(false); };
+    img.src = url;
+  }
 
   /**
-   * The focused pick over the top of the screen, once its photo has loaded: a run along the row fades the text out at
-   * once and brings the photo and the text back together where the focus rests.
+   * A photo downloaded, then decoded (img.decode, where there is one) right before it shows: drawn undecoded, the TV
+   * decodes it in the frame and the fade stutters. Not earlier: a decode held for the carousel's 9 s was dropped again.
+   */
+  function decoded(url, done) {
+    preload(url, function (ok) {
+      var img = new Image();
+      img.src = url;
+      if (ok && img.decode) img.decode().then(function () { done(true); }, function () { done(true); });
+      else done(ok);
+    });
+  }
+
+  /** The next picks' sharp photos, one at a time, so the row and the carousel land on photos already here. */
+  function preloadAround() {
+    var order = [st.card + 1, st.card - 1, st.card + 2], n = cards.length;
+    (function next(i) {
+      if (i >= order.length || !n) return;
+      preload(sharpImage(cards[(order[i] + n) % n]), function () { next(i + 1); });
+    })(0);
+  }
+
+  /** The new photo fades in over the last one, which leaves only once it's covered (no dip between the two). */
+  function heroShow(url) {
+    if ($(heroFront).getAttribute('data-url') === url) return;
+    var old = $(heroFront);
+    heroFront = heroFront === 'heroA' ? 'heroB' : 'heroA';
+    var shot = $(heroFront), front = heroFront;
+    shot.setAttribute('data-url', url);
+    shot.style.backgroundImage = 'url(' + url + ')';
+    shot.style.zIndex = 1;
+    old.style.zIndex = 0;
+    setClass(shot, 'on', true);
+    setTimeout(function () { if (heroFront === front) setClass(old, 'on', false); }, HERO_FADE_MS);
+  }
+
+  /**
+   * The focused pick over the top of the screen, once a photo of it has loaded: a run along the row fades the text out
+   * at once and brings the photo and the text back together where the focus rests. A photo not already here shows
+   * first at 1280 (quick) and turns sharp when the full one arrives.
    */
   function heroSoon() {
     var p = cards.length ? cards[Math.min(st.card, cards.length - 1)] : null;
@@ -485,26 +539,58 @@
     if (moved) setClass(txt, 'out', true);
     clearTimeout(heroTimer);
     if (!p) return;
+    var sharp = sharpImage(p), first = loaded[sharp] ? sharp : softImage(p);
     heroTimer = setTimeout(function () {
-      var url = Data.image(p.backdrop, 'w1280'), img = new Image();
-      img.onload = img.onerror = function () {
+      decoded(first, function () {
         if (heroKey !== key) return;
-        var shot = $(heroFront);
-        if (shot.getAttribute('data-url') !== url) {
-          heroFront = heroFront === 'heroA' ? 'heroB' : 'heroA';
-          shot = $(heroFront);
-          shot.setAttribute('data-url', url);
-          shot.style.backgroundImage = 'url(' + url + ')';
-          setClass(shot, 'on', true);
-          setClass($(heroFront === 'heroA' ? 'heroB' : 'heroA'), 'on', false);
-        }
+        heroShow(first);
         txt.children[0].textContent = p.title;
         txt.children[1].textContent = p.meta || '';
         txt.children[2].textContent = p.overview || '';
         setClass(txt, 'out', false);
-      };
-      img.src = url;
+        decoded(sharp, function (ok) {
+          if (heroKey !== key) return;
+          if (ok) heroShow(sharp);
+          preloadAround();
+          if (ok) heroLargest(p, key);
+        });
+      });
     }, moved ? HERO_MS : 0);
+  }
+
+  // Long enough for the hero's fade and the sky's (0.8 s) to end, and the carousel's next move kept that far off.
+  var STILL_MS = 1500;
+
+  /**
+   * The ladder's last step, as a video player's: the hero fades in a photo the TV decodes ahead (at most 2304 wide),
+   * then turns into the largest one in place, without a fade. That one can't be decoded ahead on a 2 GB LG, and its
+   * decode holds the frame 300-460 ms: only while nothing on the screen moves.
+   */
+  function heroLargest(p, key) {
+    if (!p.backdropMax) return;
+    var url = Data.image(p.backdropMax, 'original'), shown = Date.now();
+    preload(url, function (ok) {
+      setTimeout(function () {
+        var carouselSoon = (st.zone === Z.SHELF || st.zone === Z.TOP) && Date.now() - Math.max(idleAt, carouselAt) > CAROUSEL_MS - STILL_MS;
+        if (!ok || heroKey !== key || carouselSoon || Date.now() - idleAt < STILL_MS) return;
+        var shot = $(heroFront);
+        shot.setAttribute('data-url', url);
+        shot.style.backgroundImage = 'url(' + url + ')';
+      }, Math.max(0, STILL_MS - (Date.now() - shown)));
+    });
+  }
+
+  // As Apple TV's top shelf: resting on the shelf or the tabs, the hero moves on to the next pick (the posters keep
+  // still under the focus: there the person is choosing).
+  var CAROUSEL_MS = 9000, carouselAt = 0;
+
+  function carousel() {
+    if (document.hidden || saverOn || ambientOn || cards.length < 2 || (st.zone !== Z.SHELF && st.zone !== Z.TOP)) return;
+    var now = Date.now();
+    if (now - Math.max(idleAt, carouselAt) < CAROUSEL_MS) return;
+    carouselAt = now;
+    st.card = (st.card + 1) % cards.length;
+    updateFocus();
   }
 
   var bgUrl = null, bgFront = 'bgA';
@@ -1392,7 +1478,7 @@
         if (dx) st.shelf = Math.max(0, Math.min(shelf.length - 1, st.shelf + dx));
         else if (dy > 0) { openDrawer(); return; }
         else if (dy < 0) {
-          if (cards.length) { st.zone = Z.CARDS; st.card = nearest(cardNodes, centerX(tiles[st.shelf])); }
+          if (cards.length) st.zone = Z.CARDS;   // onto the pick the hero shows (the carousel may have moved it)
           else { st.zone = Z.TOP; st.top = Data.hasKey() ? st.tab : 3; }
         }
         break;
@@ -1786,6 +1872,7 @@
     if (saverOn) tickSaverClock($('saver').querySelector('.clock'));
     if (ambientOn) tickAmbient();
   }, 30000);
+  setInterval(carousel, 1000);
 
   // For the browser preview and tests.
   window.FreeMyTV = {state: st, move: move, activate: activate, back: back, showSaver: showSaver, hideSaver: hideSaver, toast: toast,

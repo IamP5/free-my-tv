@@ -247,6 +247,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 #hero .shot.on { opacity: 1; }
 #hero .shade {
   position: absolute;
+  z-index: 2;   /* over both photos, which take turns on top as they fade in */
   left: 0;
   top: 0;
   width: 100%;
