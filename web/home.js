@@ -82,7 +82,7 @@
     ['nfl', /nfl/, /^nfl/i, ['#013369', '#00163D']],
     ['globoplay', /globoplay/, /globoplay/i, ['#FF8A1F', '#FF2D5A']],
     ['jellyfin', /jellyfin/i, /jellyfin/i, ['#AA5CC3', '#00A4DC']],
-    ['spotify', /spotify/, /spotify/i, ['#1DB954', '#0F7A36']]
+    ['spotify', /spotify/, /spotify/i, ['#121212', '#000000']]
   ];
   // Apps shown at once, as on Android: 8 (today's smallest tiles, 178 wide); the shelf scrolls for the rest. The
   // built-in list keeps 8 too.
@@ -342,7 +342,6 @@
     list = $('tiles').children;
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.SHELF && st.shelf === i);
     revealShelf();
-    setClass(body, 'on-shelf', st.zone === Z.SHELF && shelf.length > 0);
     list = document.querySelectorAll('#drawer .key');
     for (i = 0; i < list.length; i++) setClass(list[i], 'focus', st.zone === Z.DRAWER && st.drawer === i);
     list = document.querySelectorAll('#apps .cell');

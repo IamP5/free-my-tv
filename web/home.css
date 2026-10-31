@@ -436,10 +436,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   -webkit-transition: opacity 0.17s;
   transition: opacity 0.17s;
 }
-/* As on Apple TV: the focused app rises and a glint crosses it once; the others step back. */
-.on-shelf .tile { opacity: 0.86; }
-.night.on-shelf .tile { opacity: 0.72; }
-.tile.focus { opacity: 1; -webkit-transform: translateY(-10px) scale(1.16); transform: translateY(-10px) scale(1.16); z-index: 2; }
+/* As on Apple TV: the focused app rises and a glint crosses it once. The others stay at full color, as bright as the
+   cards below them. */
+.tile.focus { -webkit-transform: translateY(-10px) scale(1.16); transform: translateY(-10px) scale(1.16); z-index: 2; }
 .tile::after { box-shadow: 0 26px 48px rgba(0, 0, 0, 0.4); }
 .tile.focus .face::after { opacity: 1; }
 .tile .glint {
