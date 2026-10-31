@@ -80,6 +80,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   -webkit-transition: -webkit-transform 0.38s cubic-bezier(0.32, 0.72, 0.2, 1), opacity 0.28s;
   transition: transform 0.38s cubic-bezier(0.32, 0.72, 0.2, 1), opacity 0.28s;
 }
+/* What moves is a layer from the start. Made at each move, a layer and what it left behind were drawn again at the
+   page's full resolution (4K on a UHD LG): the drawer stalled 200-300 ms there. The closed drawer keeps opacity in
+   will-change too, or Chrome drops its tiles while it's invisible and draws it all again as it opens. */
+#home, #cards, .card, #tiles, .tile, .key { will-change: transform; }
+#drawer { will-change: transform, opacity; }
+#top, #sky .lift { will-change: opacity; }
 .drawer-open #home { -webkit-transform: translateY(-560px); transform: translateY(-560px); }
 #top { -webkit-transition: opacity 0.2s; transition: opacity 0.2s; }
 .drawer-open #top { opacity: 0; }
@@ -279,8 +285,6 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   overflow: hidden;
   background-color: #2C2C2E;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
-  -webkit-transition: box-shadow 0.3s;
-  transition: box-shadow 0.3s;
 }
 .card .layer {
   position: absolute;
@@ -307,8 +311,23 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   transition: opacity 0.2s;
 }
 .card.focus { -webkit-transform: scale(1.12); transform: scale(1.12); z-index: 2; }
-.card.focus .img { box-shadow: 0 26px 48px rgba(0, 0, 0, 0.5); }
 .card.focus .img::after { opacity: 1; }
+/* Focused, the shadow deepens: a second one that fades in, since a box-shadow that changes is painted again each frame.
+   An outer shadow is drawn only outside its box, so it never covers the poster. Keys and tiles do the same. */
+.card::after, .tile::after, .key::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: inherit;
+  opacity: 0;
+  -webkit-transition: opacity 0.3s;
+  transition: opacity 0.3s;
+}
+.card::after { border-radius: 16px; box-shadow: 0 26px 48px rgba(0, 0, 0, 0.5); }
+.card.focus::after, .tile.focus::after, .key.focus::after { opacity: 1; }
 
 /* Without a TMDB key (or picks yet): the date and the time instead of the cards. */
 #clock {
@@ -358,12 +377,12 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   top: 854px;
   height: 126px;
   border-radius: 22px;
-  overflow: hidden;
   color: #FFF;
   box-shadow: 0 4px 22px rgba(0, 0, 0, 0.14);
-  -webkit-transition: -webkit-transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 0.3s, opacity 0.3s;
-  transition: transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 0.3s, opacity 0.3s;
+  -webkit-transition: -webkit-transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s;
+  transition: transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 0.3s;
 }
+.tile .face { position: absolute; left: 0; top: 0; width: 100%; height: 100%; border-radius: inherit; overflow: hidden; }
 .tile img { position: absolute; left: 50%; top: 50%; max-width: 76%; max-height: 62%; -webkit-transform: translate(-50%, -50%); transform: translate(-50%, -50%); }
 /* a logo lifted off the TV's icon (home.js): as large as the tile allows */
 .tile img.logo { width: 70%; height: 50%; max-width: none; max-height: none; object-fit: contain; }
@@ -383,7 +402,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tile::after {
+.tile .face::after {
   content: '';
   position: absolute;
   left: 0;
@@ -399,8 +418,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* As on Apple TV: the focused app rises and a glint crosses it once; the others step back. */
 .on-shelf .tile { opacity: 0.86; }
 .night.on-shelf .tile { opacity: 0.72; }
-.tile.focus { opacity: 1; -webkit-transform: translateY(-10px) scale(1.16); transform: translateY(-10px) scale(1.16); box-shadow: 0 26px 48px rgba(0, 0, 0, 0.4); z-index: 2; }
-.tile.focus::after { opacity: 1; }
+.tile.focus { opacity: 1; -webkit-transform: translateY(-10px) scale(1.16); transform: translateY(-10px) scale(1.16); z-index: 2; }
+.tile::after { box-shadow: 0 26px 48px rgba(0, 0, 0, 0.4); }
+.tile.focus .face::after { opacity: 1; }
 .tile .glint {
   position: absolute;
   left: -70%;
@@ -415,7 +435,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 @-webkit-keyframes glint { from { opacity: 1; -webkit-transform: none; } to { opacity: 1; -webkit-transform: translateX(300%); } }
 @keyframes glint { from { opacity: 1; transform: none; } to { opacity: 1; transform: translateX(300%); } }
 .night .tile { box-shadow: 0 4px 22px rgba(0, 0, 0, 0.3); }
-.night .tile.focus { box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6); }
+.night .tile::after { box-shadow: 0 18px 40px rgba(0, 0, 0, 0.6); }
 .more { position: absolute; width: 17px; height: 17px; color: rgba(0, 0, 0, 0.6); }
 .more.back { -webkit-transform: scaleX(-1); transform: scaleX(-1); }
 .night .more { color: rgba(255, 255, 255, 0.8); }
@@ -443,8 +463,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   border-radius: 26px;   /* a fifth of its height, as the apps' (home.js ICON_RADIUS) */
   text-align: center;
   color: #1D1D1F;
-  -webkit-transition: -webkit-transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 0.3s, color 0.25s;
-  transition: transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 0.3s, color 0.25s;
+  -webkit-transition: -webkit-transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), color 0.25s;
+  transition: transform 0.42s cubic-bezier(0.34, 1.3, 0.64, 1), color 0.25s;
 }
 /* Focused, the key turns white: a layer that fades in, since the glass's gradient can't fade to a color. */
 .key::before {
@@ -463,8 +483,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .key .sym { position: absolute; left: 50%; top: 33px; width: 34px; height: 34px; margin-left: -17px; }
 .key .label { position: absolute; left: 8px; right: 8px; top: 82px; font-size: 23px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .key.off { color: #8E8E93; }
-.key.focus { color: #1C1C1E; -webkit-transform: translateY(-6px) scale(1.08); transform: translateY(-6px) scale(1.08); box-shadow: 0 22px 40px rgba(0, 0, 0, 0.42); z-index: 2; }
+.key.focus { color: #1C1C1E; -webkit-transform: translateY(-6px) scale(1.08); transform: translateY(-6px) scale(1.08); z-index: 2; }
 .key.focus::before { opacity: 1; }
+.key::after { box-shadow: 0 22px 40px rgba(0, 0, 0, 0.42); }
 .night .key { color: rgba(255, 255, 255, 0.95); }
 .night .key.off { color: rgba(255, 255, 255, 0.42); }
 .night .key.focus { color: #1C1C1E; }
@@ -661,11 +682,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 * { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 
 /* Tizen 2 and 1 GB TVs (see tv.js): no shadows or animations; their GPUs can't keep up while the focus moves. */
-.lite * { box-shadow: none !important; -webkit-transition: none !important; transition: none !important; -webkit-animation: none !important; animation: none !important; }
+.lite * { box-shadow: none !important; -webkit-transition: none !important; transition: none !important; -webkit-animation: none !important; animation: none !important; will-change: auto !important; }
+.lite .card::after, .lite .tile::after, .lite .key::after { display: none; }
 
 /* Samsungs up to 2 GB (see tv.js): the parts that move lose their soft shadows, which the TV repainted on every frame of
-   a move, and what slides is a layer from the start, so a move starts at once. */
+   a move. */
 .flat .tab, .flat .card .img, .flat .tile, .flat .key { box-shadow: none !important; }
+.flat .card::after, .flat .tile::after, .flat .key::after { display: none; }
 .flat .cell.focus .face { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4) !important; }
-.flat #home, .flat #drawer, .flat #cards, .flat .card, .flat #tiles, .flat .tile { will-change: transform; }
-.flat #top { will-change: opacity; }

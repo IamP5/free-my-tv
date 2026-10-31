@@ -580,8 +580,9 @@
       t.style.width = tw + 'px';
       t.style.height = th + 'px';
       t.style.borderRadius = radius + 'px';
-      face(shelf[i], t, wordFit(shelf[i].title, tw, 30));
-      el('div', 'glint', t);
+      var f = el('div', 'face', t);   // clips the logo and the glint; the tile's shadows stay outside it
+      face(shelf[i], f, wordFit(shelf[i].title, tw, 30));
+      el('div', 'glint', f);
       hover(t, Z.SHELF, i);
     }
     // More apps than fit: a small arrow inside the glass's edge on each side that has more, where no tile reaches

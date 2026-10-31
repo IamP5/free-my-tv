@@ -119,8 +119,23 @@ Read-only check, any time:
 or copy it), and the installed app's `home.js home.css tv.js data.js strings.js index.html` (in
 `/media/developer/apps/usr/palm/applications/io.freemytv/`) match `web/` by MD5: proof the change is what the TV runs.
 Developer Mode's user can't ask which app is in front (`getForegroundAppInfo`, `running`, `getAppInfo` all answer
-"Denied method call"), and there's no screenshot or key injection from here: for what it looks like on the TV, ask
-the user to look and say what they see.
+"Denied method call"). But while Free My TV is open, the TV serves DevTools for it on port 9998
+(`curl http://192.168.0.9:9998/json/list`, Chrome 120 on this set): CDP there evaluates, presses keys
+(`Input.dispatchKeyEvent`) and traces on the real TV. For what it looks like, still ask the user to look.
+
+## Perf on the TV
+
+```bash
+node .claude/skills/verify-lg-app/perf.mjs 192.168.0.9:9998 --cycles 6
+```
+
+Opens and closes the drawer over CDP (focus must be on the shelf) and prints, per transition, the longest frame, the
+late frames and the frames drawn in the 700 ms after the key, plus the same span with nothing moving. `--keys
+right,left` measures a move along the shelf; `--css RULES` tries a CSS change on the running app without a build (gone
+at the next run); `--trace FILE` saves a Chrome trace and prints the busiest work per thread; `--no-raf --trace FILE`
+counts the frames the display drew without the script's own rAF loop. Interleave runs (A, B, A, B) before believing a
+difference. October 2026, this TV (2 GB, drawn at devicePixelRatio 2): the drawer drew 1-5 frames in its 500 ms
+(longest 217 ms) until its moving parts became layers; then about 22 (longest 33 ms).
 
 ## Cleanup
 
